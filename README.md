@@ -1,36 +1,39 @@
-Biodiversity Loss Prediction under Climate Change
+# Biodiversity Loss Prediction under Climate Change
+
 This project aims to predict biodiversity loss under varying climate change scenarios using an ensemble of deep learning models.
 
-Project Overview
+## Project Overview
+
 We implement multiple deep learning architectures including:
-
-MLP (Multi-Layer Perceptron)
-
-CNN (Convolutional Neural Network)
-
-LSTM (Long Short-Term Memory Network)
+- **MLP** (Multi-Layer Perceptron)
+- **CNN** (Convolutional Neural Network)
+- **LSTM** (Long Short-Term Memory Network)
 
 These models are trained on climate and environmental data and ensembled to improve prediction accuracy.
 
-Project Structure
-bash
-Copy
-Edit
+## Project Structure
+
 📁 Biodiversity-Loss-Prediction
 │
-├── biodiversity_loss_prediction.py    # Main training and evaluation script
+├── data/
+│ └── biodiversity_climate_data.csv # Dataset (features + labels)
+├── biodiversity_loss_prediction.py # Main training and evaluation script
 ├── biodiversity_loss_predictions.xlsx # Output prediction results
-├── README.md                           # Project documentation
-└── data/
-    └── biodiversity_climate_data.csv   # Input dataset (features + label)
-Requirements
-To install the necessary packages, run:
+├── README.md # Project documentation
+├── requirements.txt # Python dependencies
+└── .gitignore # Ignored files and folders
 
-bash
+csharp
 Copy
 Edit
+
+## Requirements
+
+Install the dependencies using:
+
+```bash
 pip install -r requirements.txt
-requirements.txt includes:
+Contents of requirements.txt:
 
 nginx
 Copy
@@ -41,15 +44,23 @@ pandas
 numpy
 openpyxl
 How to Run
-Prepare the dataset with environmental features and a target variable biodiversity_loss.
+Prepare your dataset (data/biodiversity_climate_data.csv), with:
 
-Execute the script:
+Environmental features (temperature, precipitation, CO₂ concentration, habitat index, etc.)
+
+Target variable: biodiversity_loss
+
+Run the script:
 
 bash
 Copy
 Edit
 python biodiversity_loss_prediction.py
-The model outputs predictions and saves them to an Excel file.
+Outputs:
+
+Model evaluation metrics (MSE, R² Score)
+
+Prediction results saved to biodiversity_loss_predictions.xlsx
 
 Dataset Example
 csv
@@ -60,9 +71,9 @@ temperature,precipitation,co2_concentration,habitat_index,biodiversity_loss
 16.0,1100,405,0.75,5.6
 ...
 Output
-biodiversity_loss_predictions.xlsx with true and predicted biodiversity loss values.
+biodiversity_loss_predictions.xlsx containing true and predicted biodiversity loss values.
 
-Evaluation metrics including Mean Squared Error (MSE) and R² Score.
+Evaluation metrics printed in the console.
 
 Acknowledgements
 Climate Data Sources: WorldClim, IPCC Data Distribution Centre
