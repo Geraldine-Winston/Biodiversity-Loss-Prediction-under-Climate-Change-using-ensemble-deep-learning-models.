@@ -1,0 +1,140 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, Dataset
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Define Dataset
+class BiodiversityDataset(Dataset):
+    def __init__(self, X, y):
+        self.X = torch.tensor(X, dtype=torch.float32)
+        self.y = torch.tensor(y, dtype=torch.float32)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+# Define MLP Model
+class MLP(nn.Module):
+    def __init__(self, input_dim):
+        super(MLP, self).__init__()
+        self.fc = nn.Sequential(
+            nn.Linear(input_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1)
+        )
+
+    def forward(self, x):
+        return self.fc(x)
+
+# Define CNN Model
+class CNN(nn.Module):
+    def __init__(self, input_dim):
+        super(CNN, self).__init__()
+        self.conv1d = nn.Conv1d(1, 16, kernel_size=3, padding=1)
+        self.relu = nn.ReLU()
+        self.pool = nn.AdaptiveAvgPool1d(1)
+        self.fc = nn.Linear(16, 1)
+
+    def forward(self, x):
+        x = x.unsqueeze(1)  # Add channel dimension
+        x = self.conv1d(x)
+        x = self.relu(x)
+        x = self.pool(x)
+        x = x.view(x.size(0), -1)
+        return self.fc(x)
+
+# Define LSTM Model
+class LSTMModel(nn.Module):
+    def __init__(self, input_dim):
+        super(LSTMModel, self).__init__()
+        self.lstm = nn.LSTM(input_dim, hidden_size=64, batch_first=True)
+        self.fc = nn.Linear(64, 1)
+
+    def forward(self, x):
+        x = x.unsqueeze(1)  # (batch, seq_len=1, input_dim)
+        out, (h_n, c_n) = self.lstm(x)
+        return self.fc(h_n[-1])
+
+# Ensemble Model
+class EnsembleModel(nn.Module):
+    def __init__(self, models):
+        super(EnsembleModel, self).__init__()
+        self.models = models
+
+    def forward(self, x):
+        preds = [model(x) for model in self.models]
+        return torch.stack(preds, dim=0).mean(0)
+
+# Load your dataset (replace this with your real data)
+df = pd.read_csv('biodiversity_climate_data.csv')
+X = df.drop('biodiversity_loss', axis=1).values
+y = df['biodiversity_loss'].values
+
+# Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Standardize features
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Dataset and DataLoader
+train_dataset = BiodiversityDataset(X_train, y_train)
+test_dataset = BiodiversityDataset(X_test, y_test)
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32)
+
+# Initialize models
+input_dim = X_train.shape[1]
+mlp = MLP(input_dim)
+cnn = CNN(input_dim)
+lstm = LSTMModel(input_dim)
+
+# Ensemble
+ensemble = EnsembleModel([mlp, cnn, lstm])
+
+# Loss and Optimizer
+criterion = nn.MSELoss()
+optimizer = optim.Adam(ensemble.parameters(), lr=0.001)
+
+# Training Loop
+num_epochs = 50
+for epoch in range(num_epochs):
+    ensemble.train()
+    epoch_loss = 0
+    for X_batch, y_batch in train_loader:
+        optimizer.zero_grad()
+        outputs = ensemble(X_batch)
+        loss = criterion(outputs.squeeze(), y_batch)
+        loss.backward()
+        optimizer.step()
+        epoch_loss += loss.item()
+    print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss/len(train_loader):.4f}")
+
+# Evaluation
+ensemble.eval()
+all_preds = []
+all_labels = []
+with torch.no_grad():
+    for X_batch, y_batch in test_loader:
+        preds = ensemble(X_batch).squeeze()
+        all_preds.append(preds.numpy())
+        all_labels.append(y_batch.numpy())
+
+all_preds = np.concatenate(all_preds)
+all_labels = np.concatenate(all_labels)
+
+# Metrics
+from sklearn.metrics import mean_squared_error, r2_score
+mse = mean_squared_error(all_labels, all_preds)
+r2 = r2_score(all_labels, all_preds)
+print(f"Test MSE: {mse:.4f}")
+print(f"Test R2 Score: {r2:.4f}")
